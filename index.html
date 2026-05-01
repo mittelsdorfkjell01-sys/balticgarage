@@ -154,6 +154,28 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
 .wb-color:hover{transform:scale(1.2)}
 .wb-color.active{border-color:var(--text);transform:scale(1.15)}
 #wb-text-input{position:absolute;background:transparent;border:none;outline:none;color:inherit;font-family:'DM Mono',monospace;font-size:16px;resize:none;min-width:100px;min-height:30px;pointer-events:all;z-index:10}
+.file-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;background:var(--bg);border:1px solid var(--border);margin-bottom:7px;animation:slideIn .15s ease}
+.file-icon{width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;background:var(--surface2);border-radius:6px;flex-shrink:0;border:1px solid var(--border)}
+.file-info{flex:1;overflow:hidden}
+.file-name{font-size:.73rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-meta{font-size:.63rem;color:var(--muted);margin-top:2px}
+.file-actions{display:flex;gap:5px;flex-shrink:0}
+.file-btn{background:none;border:1px solid var(--border2);border-radius:5px;color:var(--muted2);cursor:pointer;font-size:.72rem;padding:3px 7px;transition:all .15s;font-family:'DM Mono',monospace}
+.file-btn:hover{border-color:var(--muted);color:var(--text)}
+.file-btn.danger:hover{border-color:var(--accent2);color:var(--accent2)}
+.expire-badge{font-size:.6rem;padding:2px 6px;border-radius:4px;white-space:nowrap;flex-shrink:0;border:1px solid}
+.expire-ok{color:var(--accent);border-color:rgba(200,255,0,.4)}
+.expire-warn{color:#ffd700;border-color:rgba(255,215,0,.4)}
+.expire-urgent{color:var(--accent2);border-color:rgba(255,107,53,.4)}
+.breadcrumb{display:flex;align-items:center;gap:4px;font-size:.7rem;color:var(--muted2);margin-bottom:12px;flex-wrap:wrap}
+.breadcrumb-item{cursor:pointer;padding:3px 6px;border-radius:5px;transition:background .15s}
+.breadcrumb-item:hover{background:var(--surface2);color:var(--text)}
+.breadcrumb-item.current{color:var(--text);cursor:default}
+.breadcrumb-item.current:hover{background:none}
+.breadcrumb-sep{color:var(--border2)}
+.folder-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;background:var(--bg);border:1px solid var(--border);margin-bottom:7px;cursor:pointer;transition:border-color .15s;animation:slideIn .15s ease}
+.folder-item:hover{border-color:var(--muted)}
+.vault-toolbar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
 
 </style>
 </head>
@@ -175,7 +197,10 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
   <div class="nav-item" data-tool="pomodoro"><span class="nav-icon">&#127813;</span> Pomodoro</div>
   <div class="sidebar-section">Visual</div>
   <div class="nav-item" data-tool="whiteboard"><span class="nav-icon">&#128394;&#65039;</span> Whiteboard</div>
-  <div class="sidebar-bottom">Phase 1 &middot; lokal</div>
+  <div class="sidebar-section">Dateien</div>
+  <div class="nav-item" data-tool="transfer"><span class="nav-icon">&#9889;</span> Transfer</div>
+  <div class="nav-item" data-tool="vault"><span class="nav-icon">&#128193;</span> Vault</div>
+  <div class="sidebar-bottom">v2.0 &middot; IndexedDB + Sync</div>
 </nav>
 <main id="main">
 
@@ -428,6 +453,45 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
     <canvas id="wb-canvas" style="flex:1;cursor:crosshair;touch-action:none;display:block;background:#0e0e0f"></canvas>
   </div>
 </div>
+
+<!-- FILE TRANSFER -->
+<div class="tool-panel" id="tool-transfer">
+  <div class="tool-header"><h2>FILE<span>TRANSFER</span></h2><p>Tempor&auml;rer Zwischenspeicher &middot; Dateien verfallen nach 2 Stunden &middot; Live-Sync</p></div>
+  <div class="card">
+    <div class="dropzone" id="tr-drop">
+      <span class="dz-icon">&#9889;</span>
+      <h3>Dateien hierher ziehen</h3><p>Beliebige Dateitypen &middot; nach 2h automatisch gel&ouml;scht &middot; Dateien &le;512&nbsp;KB werden synchronisiert</p>
+      <input type="file" id="tr-input" multiple>
+    </div>
+  </div>
+  <div class="card">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px">
+      <div class="section-label" style="margin:0">Zwischenspeicher (<span id="tr-count">0</span>)</div>
+      <button class="file-btn danger" id="tr-clear-all">Alle l&ouml;schen</button>
+    </div>
+    <div id="tr-list"></div>
+  </div>
+</div>
+
+<!-- VAULT -->
+<div class="tool-panel" id="tool-vault">
+  <div class="tool-header"><h2>VAULT</h2><p>Dauerhafter Dateispeicher &middot; Ordner &amp; Unterordner &middot; IndexedDB &middot; Live-Sync</p></div>
+  <div class="card">
+    <div class="breadcrumb" id="vault-breadcrumb"></div>
+    <div class="vault-toolbar">
+      <button class="btn btn-secondary" id="vault-new-folder" style="flex:none;padding:8px 14px;font-size:.78rem">+ Ordner</button>
+    </div>
+    <div class="dropzone" id="vault-drop" style="padding:20px;margin-bottom:14px">
+      <span class="dz-icon" style="font-size:1.3rem">&#128193;</span>
+      <h3 style="font-size:.9rem">Dateien hierher ziehen oder klicken</h3>
+      <p>Wird in den aktuellen Ordner hochgeladen</p>
+      <input type="file" id="vault-input" multiple>
+    </div>
+    <div id="vault-list"></div>
+    <div id="vault-empty" style="color:var(--muted);font-size:.75rem;padding:8px 0;display:none">Ordner ist leer</div>
+  </div>
+</div>
+
 </main>
 <canvas id="offscreen" style="display:none"></canvas>
 <script>
@@ -927,6 +991,150 @@ window._pkSetWhiteboard=function(data){wbObjects=data;wbPushHistory();wbRedraw()
 }
 
 // ════════════════════════════════════════════════════
+// FILE TRANSFER + VAULT
+// ════════════════════════════════════════════════════
+(async () => {
+  const db = await new Promise((res,rej)=>{
+    const req=indexedDB.open('baltic-garage',1);
+    req.onupgradeneeded=e=>{
+      const d=e.target.result;
+      if(!d.objectStoreNames.contains('transfer'))d.createObjectStore('transfer',{keyPath:'id'});
+      if(!d.objectStoreNames.contains('vault')){const vs=d.createObjectStore('vault',{keyPath:'id'});vs.createIndex('parentId','parentId',{unique:false})}
+    };
+    req.onsuccess=e=>res(e.target.result);
+    req.onerror=e=>rej(e.target.error);
+  });
+
+  const dbGet  =(s,id)=>new Promise(r=>{db.transaction(s).objectStore(s).get(id).onsuccess=e=>r(e.target.result)});
+  const dbAll  =s=>new Promise(r=>{db.transaction(s).objectStore(s).getAll().onsuccess=e=>r(e.target.result)});
+  const dbIdx  =(s,k,v)=>new Promise(r=>{db.transaction(s).objectStore(s).index(k).getAll(v).onsuccess=e=>r(e.target.result)});
+  const dbPut  =(s,o)=>new Promise(r=>{db.transaction(s,'readwrite').objectStore(s).put(o).onsuccess=()=>r()});
+  const dbDel  =(s,id)=>new Promise(r=>{db.transaction(s,'readwrite').objectStore(s).delete(id).onsuccess=()=>r()});
+  const dbClear=s=>new Promise(r=>{db.transaction(s,'readwrite').objectStore(s).clear().onsuccess=()=>r()});
+
+  const SYNC_LIMIT = 512*1024;
+  const TR_TTL     = 2*60*60*1000;
+  const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const fIcon=m=>!m?'📄':m.startsWith('image/')?'🖼':m.startsWith('video/')?'🎬':m.startsWith('audio/')?'🎵':m.includes('pdf')?'📄':m.includes('zip')||m.includes('archive')?'📦':m.includes('text')?'📝':'📄';
+
+  function ab2b64(buf){let s='';const b=new Uint8Array(buf);for(let i=0;i<b.length;i++)s+=String.fromCharCode(b[i]);return btoa(s)}
+  function b642ab(b64){const s=atob(b64);const b=new ArrayBuffer(s.length);const v=new Uint8Array(b);for(let i=0;i<s.length;i++)v[i]=s.charCodeAt(i);return b}
+
+  // ── TRANSFER ────────────────────────────────────
+  function trLbl(exp){const d=exp-Date.now();if(d<=0)return{l:'Abgelaufen',c:'expire-urgent'};const m=Math.floor(d/60000),h=Math.floor(m/60);if(h>0)return{l:`${h}h ${m%60}min`,c:'expire-ok'};if(m>30)return{l:`${m} min`,c:'expire-ok'};if(m>10)return{l:`${m} min`,c:'expire-warn'};return{l:`${m} min`,c:'expire-urgent'}}
+
+  async function trRender(){
+    const now=Date.now();
+    const all=(await dbAll('transfer')).filter(f=>{if(f.expires<=now){dbDel('transfer',f.id);return false}return true});
+    document.getElementById('tr-count').textContent=all.length;
+    const list=document.getElementById('tr-list');list.innerHTML='';
+    if(!all.length){list.innerHTML='<div style="color:var(--muted);font-size:.75rem;padding:6px 0">Keine Dateien im Zwischenspeicher</div>';return}
+    for(const f of all.sort((a,b)=>b.uploaded-a.uploaded)){
+      const{l,c}=trLbl(f.expires);const synced=f.size<=SYNC_LIMIT;
+      const div=document.createElement('div');div.className='file-item';
+      div.innerHTML=`<div class="file-icon">${fIcon(f.type)}</div><div class="file-info"><div class="file-name">${esc(f.name)}</div><div class="file-meta">${formatBytes(f.size)}${synced?'':' &middot; <span style="color:var(--accent2)">nur lokal</span>'}</div></div><span class="expire-badge ${c}">${l}</span><div class="file-actions"><button class="file-btn" title="Herunterladen">&#8595;</button><button class="file-btn danger" title="L&ouml;schen">&#10005;</button></div>`;
+      div.querySelectorAll('.file-btn')[0].onclick=async()=>{const r=await dbGet('transfer',f.id);if(!r)return;const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([r.data],{type:r.type}));a.download=r.name;a.click()};
+      div.querySelectorAll('.file-btn')[1].onclick=async()=>{await dbDel('transfer',f.id);trRender();trSync()};
+      list.appendChild(div);
+    }
+  }
+
+  async function trSync(){
+    if(!window.pkSend)return;
+    const now=Date.now();
+    const all=(await dbAll('transfer')).filter(f=>f.expires>now);
+    window.pkSend('transfer',all.map(f=>({id:f.id,name:f.name,type:f.type,size:f.size,expires:f.expires,uploaded:f.uploaded,...(f.size<=SYNC_LIMIT&&f.data?{b64:ab2b64(f.data)}:{})})));
+  }
+
+  window._pkSetTransfer=async function(state){
+    const now=Date.now();const remoteIds=new Set(state.map(x=>x.id));
+    for(const item of state){if(item.expires<=now)continue;if(item.b64)await dbPut('transfer',{id:item.id,name:item.name,type:item.type,size:item.size,expires:item.expires,uploaded:item.uploaded,data:b642ab(item.b64)})}
+    for(const f of await dbAll('transfer')){if(!remoteIds.has(f.id)&&f.size<=SYNC_LIMIT)await dbDel('transfer',f.id)}
+    trRender();
+  };
+
+  setupDrop(document.getElementById('tr-drop'),document.getElementById('tr-input'),async files=>{
+    for(const f of files)await dbPut('transfer',{id:crypto.randomUUID(),name:f.name,type:f.type,size:f.size,data:await f.arrayBuffer(),uploaded:Date.now(),expires:Date.now()+TR_TTL});
+    trRender();trSync();
+  });
+  document.getElementById('tr-clear-all').onclick=async()=>{await dbClear('transfer');trRender();trSync()};
+  setInterval(trRender,60000);
+  trRender();
+
+  // ── VAULT ────────────────────────────────────────
+  let vPath=[];
+  const vCurId=()=>vPath.length?vPath[vPath.length-1].id:null;
+
+  async function vDelRec(id){
+    const item=await dbGet('vault',id);if(!item)return;
+    if(item.type==='folder')for(const c of await dbIdx('vault','parentId',id))await vDelRec(c.id);
+    await dbDel('vault',id);
+  }
+
+  async function vRender(){
+    const items=await dbIdx('vault','parentId',vCurId());
+    const list=document.getElementById('vault-list');
+    const empty=document.getElementById('vault-empty');
+    list.innerHTML='';
+    // Breadcrumb
+    const bc=document.getElementById('vault-breadcrumb');bc.innerHTML='';
+    const addSeg=(lbl,fn)=>{const s=document.createElement('span');s.className='breadcrumb-item'+(fn?'':' current');s.textContent=lbl;if(fn)s.onclick=fn;bc.appendChild(s)};
+    const addSep=()=>{const s=document.createElement('span');s.className='breadcrumb-sep';s.textContent=' › ';bc.appendChild(s)};
+    addSeg('Vault',vPath.length?()=>{vPath=[];vRender()}:null);
+    vPath.forEach((seg,i)=>{addSep();addSeg(seg.name,i<vPath.length-1?()=>{vPath=vPath.slice(0,i+1);vRender()}:null)});
+
+    const folders=items.filter(x=>x.type==='folder').sort((a,b)=>a.name.localeCompare(b.name));
+    const files  =items.filter(x=>x.type==='file').sort((a,b)=>a.name.localeCompare(b.name));
+    empty.style.display=(!folders.length&&!files.length)?'block':'none';
+
+    for(const folder of folders){
+      const div=document.createElement('div');div.className='folder-item';
+      div.innerHTML=`<div class="file-icon">&#128193;</div><div class="file-info"><div class="file-name">${esc(folder.name)}</div><div class="file-meta">Ordner</div></div><div class="file-actions"><button class="file-btn danger" title="L&ouml;schen">&#10005;</button></div>`;
+      div.onclick=e=>{if(e.target.closest('.file-btn'))return;vPath.push({id:folder.id,name:folder.name});vRender()};
+      div.querySelector('.file-btn').onclick=async e=>{e.stopPropagation();if(!confirm(`"${folder.name}" und alle Inhalte löschen?`))return;await vDelRec(folder.id);vRender();vSync()};
+      list.appendChild(div);
+    }
+    for(const file of files){
+      const synced=file.size<=SYNC_LIMIT;
+      const div=document.createElement('div');div.className='file-item';
+      div.innerHTML=`<div class="file-icon">${fIcon(file.mimeType)}</div><div class="file-info"><div class="file-name">${esc(file.name)}</div><div class="file-meta">${formatBytes(file.size)}${synced?'':' &middot; <span style="color:var(--accent2)">nur lokal</span>'}</div></div><div class="file-actions"><button class="file-btn" title="Herunterladen">&#8595;</button><button class="file-btn danger" title="L&ouml;schen">&#10005;</button></div>`;
+      div.querySelectorAll('.file-btn')[0].onclick=async()=>{const r=await dbGet('vault',file.id);if(!r?.data)return;const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([r.data],{type:r.mimeType}));a.download=r.name;a.click()};
+      div.querySelectorAll('.file-btn')[1].onclick=async()=>{await dbDel('vault',file.id);vRender();vSync()};
+      list.appendChild(div);
+    }
+  }
+
+  async function vSync(){
+    if(!window.pkSend)return;
+    const all=await dbAll('vault');
+    window.pkSend('vault',all.map(item=>({id:item.id,name:item.name,type:item.type,parentId:item.parentId,createdAt:item.createdAt,...(item.type==='file'?{size:item.size,mimeType:item.mimeType}:{}),...(item.type==='file'&&item.size<=SYNC_LIMIT&&item.data?{b64:ab2b64(item.data)}:{})})));
+  }
+
+  window._pkSetVault=async function(state){
+    const remoteIds=new Set(state.map(x=>x.id));
+    for(const item of state){
+      if(item.type==='folder')await dbPut('vault',{id:item.id,name:item.name,type:'folder',parentId:item.parentId,createdAt:item.createdAt});
+      else if(item.b64)await dbPut('vault',{id:item.id,name:item.name,type:'file',parentId:item.parentId,size:item.size,mimeType:item.mimeType,createdAt:item.createdAt,data:b642ab(item.b64)});
+    }
+    for(const item of await dbAll('vault')){if(!remoteIds.has(item.id)&&(item.type==='folder'||item.size<=SYNC_LIMIT))await dbDel('vault',item.id)}
+    vRender();
+  };
+
+  document.getElementById('vault-new-folder').onclick=async()=>{
+    const name=prompt('Ordnername:');if(!name?.trim())return;
+    await dbPut('vault',{id:crypto.randomUUID(),name:name.trim(),type:'folder',parentId:vCurId(),createdAt:Date.now()});
+    vRender();vSync();
+  };
+
+  setupDrop(document.getElementById('vault-drop'),document.getElementById('vault-input'),async files=>{
+    for(const f of files)await dbPut('vault',{id:crypto.randomUUID(),name:f.name,type:'file',parentId:vCurId(),size:f.size,mimeType:f.type,data:await f.arrayBuffer(),createdAt:Date.now()});
+    vRender();vSync();
+  });
+
+  vRender();
+})();
+
+// ════════════════════════════════════════════════════
 // PARTYKIT SYNC
 // ════════════════════════════════════════════════════
 {
@@ -992,13 +1200,16 @@ function connect() {
         ignoreRemote = true;
 
         if (msg.type === 'init' && msg.data) {
-          // Kompletter State beim ersten Verbinden
           if (msg.data.kanban)    applyKanban(msg.data.kanban);
           if (msg.data.checklist) applyChecklist(msg.data.checklist);
           if (msg.data.whiteboard) applyWhiteboard(msg.data.whiteboard);
+          if (msg.data.transfer)  applyTransfer(msg.data.transfer);
+          if (msg.data.vault)     applyVault(msg.data.vault);
         } else if (msg.type === 'kanban')    { applyKanban(msg.data); }
           else if (msg.type === 'checklist') { applyChecklist(msg.data); }
           else if (msg.type === 'whiteboard'){ applyWhiteboard(msg.data); }
+          else if (msg.type === 'transfer')  { applyTransfer(msg.data); }
+          else if (msg.type === 'vault')     { applyVault(msg.data); }
 
         ignoreRemote = false;
       } catch(err) { ignoreRemote = false; }
@@ -1034,6 +1245,10 @@ function applyChecklist(data) {
 function applyWhiteboard(data) {
   if (window._pkSetWhiteboard) window._pkSetWhiteboard(data);
 }
+
+// ── Transfer / Vault Apply ────────────────────────
+function applyTransfer(data) { if (window._pkSetTransfer) window._pkSetTransfer(data); }
+function applyVault(data)    { if (window._pkSetVault)    window._pkSetVault(data); }
 
 // Expose push functions globally
 window.pkSend = pkSend;

@@ -14,12 +14,16 @@ export default {
     const state = raw ? JSON.parse(raw) : {
       whiteboard: [],
       kanban: { "Ideen": [], "In Arbeit": [], "Überprüfen": [], "Erledigt": [] },
-      checklist: []
+      checklist: [],
+      transfer: [],
+      vault: []
     };
 
-    if (msg.type === "whiteboard") state.whiteboard = msg.data;
-    else if (msg.type === "kanban") state.kanban = msg.data;
+    if (msg.type === "whiteboard")    state.whiteboard = msg.data;
+    else if (msg.type === "kanban")   state.kanban = msg.data;
     else if (msg.type === "checklist") state.checklist = msg.data;
+    else if (msg.type === "transfer") state.transfer = msg.data;
+    else if (msg.type === "vault")    state.vault = msg.data;
     else return;
 
     await room.storage.put("state", JSON.stringify(state));
